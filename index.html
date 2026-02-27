@@ -1,1 +1,562 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G-Tech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                        'pop': 'pop 0.1s ease-out',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(0.95)' },
+                            '100%': { transform: 'scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+
+        /* Glassmorphism Utilities - Always Dark */
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Button Press Effect */
+        .btn-press:active {
+            transform: scale(0.92);
+            transition: transform 0.05s;
+        }
+
+        /* Display Glow */
+        .display-glow {
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-100 transition-colors duration-500 min-h-screen flex flex-col overflow-hidden relative">
+
+    <!-- Background Decoration -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/20 rounded-full blur-[100px] animate-pulse-slow"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/20 rounded-full blur-[100px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="w-full p-4 flex justify-between items-center z-20">
+        <div class="flex items-center gap-2">
+            <h1 class="font-bold text-xl tracking-tight text-white">G-Tech</h1>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="toggle-history" class="p-2 rounded-full hover:bg-slate-800 transition-colors relative group" title="Toggle History">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="absolute top-10 right-0 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">History</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-4 relative z-10">
+        
+        <div class="flex flex-col md:flex-row gap-6 w-full max-w-5xl items-start justify-center">
+            
+            <!-- Calculator Container -->
+            <div class="glass rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transition-all duration-300 transform hover:scale-[1.01]">
+                
+                <!-- Display Screen -->
+                <div class="bg-slate-800/50 p-6 flex flex-col items-end justify-end h-40 border-b border-slate-700 relative">
+                    <div id="previous-operand" class="text-gray-400 text-sm font-mono h-6 overflow-hidden whitespace-nowrap w-full text-right transition-all"></div>
+                    <div id="current-operand" class="text-4xl md:text-5xl font-bold font-mono tracking-tight display-glow break-all text-right w-full transition-all">0</div>
+                    
+                    <!-- Memory Indicator -->
+                    <div id="memory-indicator" class="absolute top-4 left-4 text-xs font-bold text-brand-500 opacity-0 transition-opacity">M</div>
+                </div>
+
+                <!-- Mode Toggles -->
+                <div class="flex bg-slate-900/50 p-1 gap-1">
+                    <button id="mode-std" class="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded bg-slate-700 shadow-sm text-brand-400 transition-all">Standard</button>
+                    <button id="mode-sci" class="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded text-gray-400 hover:bg-slate-800 transition-all">Scientific</button>
+                </div>
+
+                <!-- Keypad -->
+                <div class="p-4 bg-slate-900/80">
+                    
+                    <!-- Scientific Keys (Hidden by default) -->
+                    <div id="sci-keys" class="grid grid-cols-5 gap-2 mb-2 hidden animate-slide-up">
+                        <button data-action="func" data-val="sin" class="btn-calc p-3 rounded-xl bg-indigo-900/30 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">sin</button>
+                        <button data-action="func" data-val="cos" class="btn-calc p-3 rounded-xl bg-indigo-900/30 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">cos</button>
+                        <button data-action="func" data-val="tan" class="btn-calc p-3 rounded-xl bg-indigo-900/30 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">tan</button>
+                        <button data-action="func" data-val="log" class="btn-calc p-3 rounded-xl bg-indigo-900/30 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">log</button>
+                        <button data-action="func" data-val="ln" class="btn-calc p-3 rounded-xl bg-indigo-900/30 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">ln</button>
+                        
+                        <button data-action="func" data-val="asin" class="btn-calc p-3 rounded-xl bg-indigo-900/20 text-indigo-300 font-semibold text-xs hover:bg-indigo-900/50 transition-colors btn-press">sin⁻¹</button>
+                        <button data-action="func" data-val="acos" class="btn-calc p-3 rounded-xl bg-indigo-900/20 text-indigo-300 font-semibold text-xs hover:bg-indigo-900/50 transition-colors btn-press">cos⁻¹</button>
+                        <button data-action="func" data-val="atan" class="btn-calc p-3 rounded-xl bg-indigo-900/20 text-indigo-300 font-semibold text-xs hover:bg-indigo-900/50 transition-colors btn-press">tan⁻¹</button>
+                        <button data-action="op" data-val="^" class="btn-calc p-3 rounded-xl bg-indigo-900/20 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">xʸ</button>
+                        <button data-action="func" data-val="sqrt" class="btn-calc p-3 rounded-xl bg-indigo-900/20 text-indigo-300 font-semibold text-sm hover:bg-indigo-900/50 transition-colors btn-press">√</button>
+
+                        <button data-action="func" data-val="pi" class="btn-calc p-3 rounded-xl bg-slate-800 text-gray-300 font-semibold text-sm hover:bg-slate-700 transition-colors btn-press">π</button>
+                        <button data-action="func" data-val="e" class="btn-calc p-3 rounded-xl bg-slate-800 text-gray-300 font-semibold text-sm hover:bg-slate-700 transition-colors btn-press">e</button>
+                        <button data-action="func" data-val="(" class="btn-calc p-3 rounded-xl bg-slate-800 text-gray-300 font-semibold text-sm hover:bg-slate-700 transition-colors btn-press">(</button>
+                        <button data-action="func" data-val=")" class="btn-calc p-3 rounded-xl bg-slate-800 text-gray-300 font-semibold text-sm hover:bg-slate-700 transition-colors btn-press">)</button>
+                        <button data-action="func" data-val="!" class="btn-calc p-3 rounded-xl bg-slate-800 text-gray-300 font-semibold text-sm hover:bg-slate-700 transition-colors btn-press">n!</button>
+                    </div>
+
+                    <!-- Standard Keys -->
+                    <div class="grid grid-cols-4 gap-3">
+                        <!-- Row 1 -->
+                        <button data-action="memory" data-val="MC" class="btn-calc p-4 rounded-2xl bg-red-900/20 text-red-500 font-bold hover:bg-red-900/40 transition-colors btn-press">MC</button>
+                        <button data-action="memory" data-val="MR" class="btn-calc p-4 rounded-2xl bg-red-900/20 text-red-500 font-bold hover:bg-red-900/40 transition-colors btn-press">MR</button>
+                        <button data-action="memory" data-val="M+" class="btn-calc p-4 rounded-2xl bg-red-900/20 text-red-500 font-bold hover:bg-red-900/40 transition-colors btn-press">M+</button>
+                        <button data-action="memory" data-val="M-" class="btn-calc p-4 rounded-2xl bg-red-900/20 text-red-500 font-bold hover:bg-red-900/40 transition-colors btn-press">M-</button>
+
+                        <!-- Row 2 -->
+                        <button data-action="clear" class="btn-calc p-4 rounded-2xl bg-slate-700 text-gray-200 font-bold text-lg hover:bg-slate-600 transition-colors btn-press">AC</button>
+                        <button data-action="delete" class="btn-calc p-4 rounded-2xl bg-slate-700 text-gray-200 font-bold hover:bg-slate-600 transition-colors btn-press">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" />
+                            </svg>
+                        </button>
+                        <button data-action="op" data-val="%" class="btn-calc p-4 rounded-2xl bg-slate-700 text-gray-200 font-bold text-lg hover:bg-slate-600 transition-colors btn-press">%</button>
+                        <button data-action="op" data-val="/" class="btn-calc p-4 rounded-2xl bg-brand-900/30 text-brand-400 font-bold text-xl hover:bg-brand-900/50 transition-colors btn-press">÷</button>
+
+                        <!-- Row 3 -->
+                        <button data-action="num" data-val="7" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">7</button>
+                        <button data-action="num" data-val="8" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">8</button>
+                        <button data-action="num" data-val="9" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">9</button>
+                        <button data-action="op" data-val="*" class="btn-calc p-4 rounded-2xl bg-brand-900/30 text-brand-400 font-bold text-xl hover:bg-brand-900/50 transition-colors btn-press">×</button>
+
+                        <!-- Row 4 -->
+                        <button data-action="num" data-val="4" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">4</button>
+                        <button data-action="num" data-val="5" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">5</button>
+                        <button data-action="num" data-val="6" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">6</button>
+                        <button data-action="op" data-val="-" class="btn-calc p-4 rounded-2xl bg-brand-900/30 text-brand-400 font-bold text-xl hover:bg-brand-900/50 transition-colors btn-press">−</button>
+
+                        <!-- Row 5 -->
+                        <button data-action="num" data-val="1" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">1</button>
+                        <button data-action="num" data-val="2" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">2</button>
+                        <button data-action="num" data-val="3" class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">3</button>
+                        <button data-action="op" data-val="+" class="btn-calc p-4 rounded-2xl bg-brand-900/30 text-brand-400 font-bold text-xl hover:bg-brand-900/50 transition-colors btn-press">+</button>
+
+                        <!-- Row 6 -->
+                        <button data-action="num" data-val="0" class="col-span-2 btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">0</button>
+                        <button data-action="num" data-val="." class="btn-calc p-4 rounded-2xl bg-slate-800 text-white font-semibold text-xl shadow-sm hover:bg-slate-700 transition-colors btn-press">.</button>
+                        <button data-action="calculate" class="btn-calc p-4 rounded-2xl bg-brand-500 text-white font-bold text-xl shadow-lg shadow-brand-500/40 hover:bg-brand-600 hover:shadow-brand-500/60 transition-all btn-press">=</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Panel (Side) -->
+            <div id="history-panel" class="hidden md:flex flex-col w-64 h-[600px] glass rounded-3xl p-4 transition-all duration-300 transform translate-x-0">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                    <h3 class="font-bold text-gray-400 uppercase text-xs tracking-wider">History</h3>
+                    <button id="clear-history" class="text-xs text-red-400 hover:text-red-500 font-semibold">Clear</button>
+                </div>
+                <div id="history-list" class="flex-grow overflow-y-auto space-y-3 pr-1">
+                    <!-- History items injected here -->
+                    <div class="text-center text-gray-400 text-sm mt-10 italic">No history yet</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile History Overlay -->
+        <div id="mobile-history-overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden backdrop-blur-sm">
+            <div class="absolute bottom-0 left-0 w-full bg-slate-800 rounded-t-3xl p-6 h-[70vh] flex flex-col animate-slide-up">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">History</h3>
+                    <button id="close-mobile-history" class="p-2 bg-slate-700 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="mobile-history-list" class="flex-grow overflow-y-auto space-y-3"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-sm text-gray-400 relative z-20 bg-slate-900/50 backdrop-blur-sm border-t border-slate-800">
+        <p>Developed by <a href="https://ghufran-shahid-tech.github.io/Personal-Portfolio-/" target="_blank" class="font-semibold text-brand-400 hover:underline decoration-2 underline-offset-2 transition-all">Ghufran Shahid</a></p>
+    </footer>
+
+    <script>
+        /**
+         * Calculator Logic Module
+         * Handles state, computation, and memory.
+         */
+        class Calculator {
+            constructor(prevOperandTextElement, currentOperandTextElement) {
+                this.prevOperandTextElement = prevOperandTextElement;
+                this.currentOperandTextElement = currentOperandTextElement;
+                this.memory = 0;
+                this.history = [];
+                this.clear();
+            }
+
+            clear() {
+                this.currentOperand = '0';
+                this.previousOperand = '';
+                this.operation = undefined;
+                this.shouldResetScreen = false;
+            }
+
+            delete() {
+                if (this.shouldResetScreen) return;
+                if (this.currentOperand === '0') return;
+                if (this.currentOperand.length === 1) {
+                    this.currentOperand = '0';
+                } else {
+                    this.currentOperand = this.currentOperand.toString().slice(0, -1);
+                }
+            }
+
+            appendNumber(number) {
+                if (this.shouldResetScreen) {
+                    this.currentOperand = '';
+                    this.shouldResetScreen = false;
+                }
+                if (number === '.' && this.currentOperand.includes('.')) return;
+                if (this.currentOperand === '0' && number !== '.') {
+                    this.currentOperand = number.toString();
+                } else {
+                    this.currentOperand = this.currentOperand.toString() + number.toString();
+                }
+            }
+
+            chooseOperation(operation) {
+                if (this.currentOperand === '') return;
+                if (this.previousOperand !== '') {
+                    this.compute();
+                }
+                this.operation = operation;
+                this.previousOperand = this.currentOperand;
+                this.currentOperand = '';
+            }
+
+            // Helper for scientific functions
+            executeFunction(funcName) {
+                let current = parseFloat(this.currentOperand);
+                if (isNaN(current)) return;
+                
+                let result;
+                let expression = `${funcName}(${this.currentOperand})`;
+
+                try {
+                    switch(funcName) {
+                        case 'sin': result = Math.sin(current); break;
+                        case 'cos': result = Math.cos(current); break;
+                        case 'tan': result = Math.tan(current); break;
+                        case 'asin': result = Math.asin(current); break;
+                        case 'acos': result = Math.acos(current); break;
+                        case 'atan': result = Math.atan(current); break;
+                        case 'log': result = Math.log10(current); break;
+                        case 'ln': result = Math.log(current); break;
+                        case 'sqrt': result = Math.sqrt(current); break;
+                        case 'pi': 
+                            this.currentOperand = Math.PI.toString(); 
+                            this.shouldResetScreen = true;
+                            return;
+                        case 'e': 
+                            this.currentOperand = Math.E.toString(); 
+                            this.shouldResetScreen = true;
+                            return;
+                        case '!':
+                            if (current < 0 || !Number.isInteger(current)) throw new Error("Invalid Input");
+                            result = 1;
+                            for(let i=2; i<=current; i++) result *= i;
+                            expression = `${this.currentOperand}!`;
+                            break;
+                        default: return;
+                    }
+                    
+                    if (isNaN(result) || !isFinite(result)) throw new Error("Error");
+                    
+                    this.addToHistory(expression, result);
+                    this.currentOperand = result;
+                    this.shouldResetScreen = true;
+                } catch (e) {
+                    this.currentOperand = "Error";
+                    this.shouldResetScreen = true;
+                }
+            }
+
+            compute() {
+                let computation;
+                const prev = parseFloat(this.previousOperand);
+                const current = parseFloat(this.currentOperand);
+                if (isNaN(prev) || isNaN(current)) return;
+
+                let expression = `${prev} ${this.operation} ${current}`;
+
+                switch (this.operation) {
+                    case '+': computation = prev + current; break;
+                    case '-': computation = prev - current; break;
+                    case '*': computation = prev * current; break;
+                    case '/': 
+                        if(current === 0) {
+                            this.currentOperand = "Can't divide by 0";
+                            this.previousOperand = '';
+                            this.operation = undefined;
+                            this.shouldResetScreen = true;
+                            return;
+                        }
+                        computation = prev / current; 
+                        break;
+                    case '^': computation = Math.pow(prev, current); break;
+                    case '%': computation = prev % current; break;
+                    default: return;
+                }
+
+                // Handle precision issues roughly
+                computation = Math.round(computation * 100000000) / 100000000;
+
+                this.addToHistory(expression, computation);
+                this.currentOperand = computation;
+                this.operation = undefined;
+                this.previousOperand = '';
+                this.shouldResetScreen = true;
+            }
+
+            memoryOperation(type) {
+                const current = parseFloat(this.currentOperand);
+                switch(type) {
+                    case 'MC': this.memory = 0; break;
+                    case 'MR': 
+                        this.currentOperand = this.memory.toString(); 
+                        this.shouldResetScreen = true;
+                        break;
+                    case 'M+': 
+                        if(!isNaN(current)) this.memory += current; 
+                        break;
+                    case 'M-': 
+                        if(!isNaN(current)) this.memory -= current; 
+                        break;
+                    case 'MS': 
+                        if(!isNaN(current)) this.memory = current; 
+                        break;
+                }
+                updateMemoryIndicator();
+            }
+
+            getDisplayNumber(number) {
+                if (number === "Error" || number === "Can't divide by 0") return number;
+                const stringNumber = number.toString();
+                const integerDigits = parseFloat(stringNumber.split('.')[0]);
+                const decimalDigits = stringNumber.split('.')[1];
+                let integerDisplay;
+                if (isNaN(integerDigits)) {
+                    integerDisplay = '';
+                } else {
+                    integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 });
+                }
+                if (decimalDigits != null) {
+                    return `${integerDisplay}.${decimalDigits}`;
+                } else {
+                    return integerDisplay;
+                }
+            }
+
+            updateDisplay() {
+                this.currentOperandTextElement.innerText = this.getDisplayNumber(this.currentOperand);
+                if (this.operation != null) {
+                    this.prevOperandTextElement.innerText = `${this.getDisplayNumber(this.previousOperand)} ${this.operation}`;
+                } else {
+                    this.prevOperandTextElement.innerText = '';
+                }
+            }
+
+            addToHistory(expr, res) {
+                const entry = { expression: expr, result: res, time: new Date() };
+                this.history.unshift(entry);
+                if (this.history.length > 10) this.history.pop();
+                renderHistory();
+            }
+        }
+
+        /**
+         * UI Controller & Event Listeners
+         */
+        const prevOperandTextElement = document.getElementById('previous-operand');
+        const currentOperandTextElement = document.getElementById('current-operand');
+        const calculator = new Calculator(prevOperandTextElement, currentOperandTextElement);
+
+        // Mode Toggle
+        const modeStd = document.getElementById('mode-std');
+        const modeSci = document.getElementById('mode-sci');
+        const sciKeys = document.getElementById('sci-keys');
+
+        modeStd.addEventListener('click', () => {
+            sciKeys.classList.add('hidden');
+            modeStd.classList.add('bg-slate-700', 'shadow-sm', 'text-brand-400');
+            modeStd.classList.remove('text-gray-400');
+            modeSci.classList.remove('bg-slate-700', 'shadow-sm', 'text-brand-400');
+            modeSci.classList.add('text-gray-400');
+        });
+
+        modeSci.addEventListener('click', () => {
+            sciKeys.classList.remove('hidden');
+            modeSci.classList.add('bg-slate-700', 'shadow-sm', 'text-brand-400');
+            modeSci.classList.remove('text-gray-400');
+            modeStd.classList.remove('bg-slate-700', 'shadow-sm', 'text-brand-400');
+            modeStd.classList.add('text-gray-400');
+        });
+
+        // History Logic
+        const historyList = document.getElementById('history-list');
+        const mobileHistoryList = document.getElementById('mobile-history-list');
+        const toggleHistoryBtn = document.getElementById('toggle-history');
+        const mobileHistoryOverlay = document.getElementById('mobile-history-overlay');
+        const closeMobileHistory = document.getElementById('close-mobile-history');
+        const clearHistoryBtn = document.getElementById('clear-history');
+
+        function renderHistory() {
+            const generateHTML = (item) => `
+                <div class="bg-slate-700/50 p-3 rounded-xl cursor-pointer hover:bg-slate-700 transition-colors group" onclick="loadHistory('${item.result}')">
+                    <div class="text-xs text-gray-500 mb-1 font-mono">${item.expression} =</div>
+                    <div class="text-lg font-bold text-brand-400 group-hover:translate-x-1 transition-transform">${item.result}</div>
+                </div>
+            `;
+
+            if (calculator.history.length === 0) {
+                const empty = '<div class="text-center text-gray-400 text-sm mt-10 italic">No history yet</div>';
+                historyList.innerHTML = empty;
+                mobileHistoryList.innerHTML = empty;
+            } else {
+                const html = calculator.history.map(generateHTML).join('');
+                historyList.innerHTML = html;
+                mobileHistoryList.innerHTML = html;
+            }
+        }
+
+        window.loadHistory = (val) => {
+            calculator.currentOperand = val.toString();
+            calculator.shouldResetScreen = true;
+            calculator.updateDisplay();
+            mobileHistoryOverlay.classList.add('hidden');
+        };
+
+        clearHistoryBtn.addEventListener('click', () => {
+            calculator.history = [];
+            renderHistory();
+        });
+
+        toggleHistoryBtn.addEventListener('click', () => {
+            if (window.innerWidth < 768) {
+                mobileHistoryOverlay.classList.remove('hidden');
+            }
+        });
+
+        closeMobileHistory.addEventListener('click', () => {
+            mobileHistoryOverlay.classList.add('hidden');
+        });
+
+        // Memory Indicator
+        const memIndicator = document.getElementById('memory-indicator');
+        function updateMemoryIndicator() {
+            if (calculator.memory !== 0) {
+                memIndicator.style.opacity = '1';
+            } else {
+                memIndicator.style.opacity = '0';
+            }
+        }
+
+        // Button Clicks
+        document.querySelectorAll('.btn-calc').forEach(button => {
+            button.addEventListener('click', () => {
+                const action = button.dataset.action;
+                const val = button.dataset.val;
+
+                // Visual feedback
+                button.classList.add('animate-pop');
+                setTimeout(() => button.classList.remove('animate-pop'), 100);
+
+                if (action === 'num') calculator.appendNumber(val);
+                if (action === 'op') calculator.chooseOperation(val);
+                if (action === 'func') calculator.executeFunction(val);
+                if (action === 'memory') calculator.memoryOperation(val);
+                if (action === 'clear') calculator.clear();
+                if (action === 'delete') calculator.delete();
+                if (action === 'calculate') calculator.compute();
+
+                calculator.updateDisplay();
+            });
+        });
+
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            let key = e.key;
+            
+            // Map keys
+            if (key === 'Enter') key = '=';
+            if (key === 'Backspace') key = 'DEL';
+            if (key === 'Escape') key = 'AC';
+            if (key === '/') e.preventDefault();
+
+            const button = Array.from(document.querySelectorAll('.btn-calc')).find(btn => {
+                return btn.dataset.val === key || 
+                       (key === '=' && btn.dataset.action === 'calculate') ||
+                       (key === 'DEL' && btn.dataset.action === 'delete') ||
+                       (key === 'AC' && btn.dataset.action === 'clear');
+            });
+
+            if (button) {
+                button.click();
+                button.classList.add('bg-slate-600');
+                setTimeout(() => button.classList.remove('bg-slate-600'), 100);
+            }
+        });
+
+        // Initialize
+        calculator.updateDisplay();
+    </script>
+</body>
+</html>
 
